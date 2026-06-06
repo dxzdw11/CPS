@@ -23,6 +23,6 @@ If you want to test the application on your computer or make changes:
 
 1. **Clone the repository** (or download the `index.html` file directly):
 ```bash
-git clone [https://github.com/dxzdw11/CPS.git](https://github.com/dxzdw11/CPS.git)
-
+git clone https://github.com/dxzdw11/CPS.git
+```
 btw it was made by gemini 3.1 pro with extended thinking
