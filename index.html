@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Test | CPS & Spacebar Counter</title>
+    <style>
+        /* CSS: Styling and Interface */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #121212; 
+            color: #ffffff; 
+            text-align: center; 
+            padding: 20px; 
+            margin: 0;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 40px auto; 
+            background: #1e1e1e; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6); 
+        }
+        h1 { margin-top: 0; color: #4dabf7; }
+        
+        .controls { 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            margin-bottom: 25px; 
+            flex-wrap: wrap; 
+        }
+        select, button { 
+            padding: 12px 18px; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        select, .mode-btn { background: #333; color: white; }
+        select:focus { outline: 2px solid #4dabf7; }
+        
+        .mode-btn:hover, select:hover { background: #444; }
+        .mode-btn.active { background: #4dabf7; color: #121212; }
+        
+        .stats { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 18px; 
+            margin-bottom: 25px; 
+            gap: 10px;
+        }
+        .stat-box { 
+            background: #2c2c2c; 
+            padding: 15px; 
+            border-radius: 8px; 
+            flex: 1;
+            font-weight: bold;
+        }
+        .stat-box span { color: #4dabf7; font-size: 22px; display: block; margin-top: 5px; }
+        
+        .target-area { 
+            width: 100%; 
+            height: 220px; 
+            background: #2a2a2a; 
+            border: 3px dashed #555; 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 28px; 
+            cursor: pointer; 
+            user-select: none; 
+            margin-bottom: 20px; 
+            transition: background 0.05s, transform 0.05s; 
+        }
+        /* Mouse click feedback */
+        .target-area:active { background: #3a3a3a; transform: scale(0.98); }
+        
+        #restart-btn { 
+            background: #fa5252; 
+            color: white; 
+            display: none; 
+            width: 100%;
+            font-size: 18px;
+        }
+        #restart-btn:hover { background: #e03131; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speed Test</h1>
+        
+        <div class="controls">
+            <button class="mode-btn active" data-mode="click">Mouse (CPS)</button>
+            <button class="mode-btn" data-mode="space">Spacebar</button>
+            <select id="time-select">
+                <option value="1">1 Second</option>
+                <option value="5" selected>5 Seconds</option>
+                <option value="10">10 Seconds</option>
+                <option value="30">30 Seconds</option>
+                <option value="60">60 Seconds</option>
+            </select>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">Time Left <span id="time-display">5.00s</span></div>
+            <div class="stat-box">Score <span id="score-display">0</span></div>
+            <div class="stat-box">CPS <span id="cps-display">0.00</span></div>
+        </div>
+
+        <div id="target" class="target-area">Click here to start!</div>
+        
+        <button id="restart-btn">Restart Test</button>
+    </div>
+
+    <script>
+        // JavaScript: Game Logic
+        let score = 0;
+        let timeSelected = 5;
+        let timeLeft = timeSelected;
+        let timerInterval;
+        let isPlaying = false;
+        let mode = 'click'; // Default mode
+        let startTime;
+
+        const target = document.getElementById('target');
+        const timeDisplay = document.getElementById('time-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const cpsDisplay = document.getElementById('cps-display');
+        const timeSelect = document.getElementById('time-select');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // Update the UI elements
+        function updateUI() {
+            timeDisplay.textContent = Math.max(timeLeft, 0).toFixed(2) + "s";
+            scoreDisplay.textContent = score;
+            
+            let elapsed = timeSelected - timeLeft;
+            if (elapsed > 0 && isPlaying) {
+                cpsDisplay.textContent = (score / elapsed).toFixed(2);
+            } else if (!isPlaying && score === 0) {
+                cpsDisplay.textContent = "0.00";
+            }
+        }
+
+        // Change timer duration
+        timeSelect.addEventListener('change', (e) => {
+            timeSelected = parseInt(e.target.value);
+            resetGame();
+        });
+
+        // Change game mode
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                modeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                mode = e.target.getAttribute('data-mode');
+                resetGame();
+            });
+        });
+
+        restartBtn.addEventListener('click', resetGame);
+
+        // Start the game loop
+        function startGame() {
+            isPlaying = true;
+            startTime = Date.now();
+            target.textContent = mode === 'click' ? "Keep clicking!" : "Press the spacebar!";
+            restartBtn.style.display = 'block';
+            
+            // 50ms loop for a smooth countdown animation
+            timerInterval = setInterval(() => {
+                let elapsedTime = (Date.now() - startTime) / 1000;
+                timeLeft = timeSelected - elapsedTime;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                } else {
+                    updateUI();
+                }
+            }, 50);
+        }
+
+        // End the game and display results
+        function endGame() {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            timeLeft = 0;
+            let finalCps = (score / timeSelected).toFixed(2);
+            updateUI();
+            target.textContent = `Finished! Score: ${score} (${finalCps} CPS)`;
+            target.style.background = '#2a2a2a'; // Reset color
+        }
+
+        // Reset the game environment
+        function resetGame() {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            score = 0;
+            timeLeft = timeSelected;
+            restartBtn.style.display = 'none';
+            target.textContent = mode === 'click' ? "Click here to start!" : "Press SPACE to start!";
+            updateUI();
+        }
+
+        // Handle user action (Click or Keydown)
+        function handleAction() {
+            if (timeLeft <= 0) return; // Ignore input if time has expired
+            if (!isPlaying) startGame();
+
+            score++;
+            updateUI();
+        }
+
+        // Mouse Event
+        target.addEventListener('mousedown', (e) => {
+            if (mode === 'click') handleAction();
+        });
+
+        // Keyboard Event (Spacebar)
+        document.addEventListener('keydown', (e) => {
+            if (mode === 'space' && e.code === 'Space') {
+                e.preventDefault(); // Prevent page scrolling
+                if (e.repeat) return; // ANTI-CHEAT: Prevent holding down the key
+                
+                handleAction();
+                
+                // Visual feedback during spacebar press
+                if(timeLeft > 0) target.style.background = '#3a3a3a'; 
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (mode === 'space' && e.code === 'Space') {
+                target.style.background = '#2a2a2a'; // Restore color on release
+            }
+        });
+
+    </script>
+</body>
+</html>
